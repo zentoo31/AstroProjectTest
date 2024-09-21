@@ -1,13 +1,56 @@
 ---
-import type { GetStaticPaths } from "astro";
-import { getCollection } from "astro:content";
+import { getCollection, render } from "astro:content";
 import Layout from "../../layouts/Layout.astro";
+import { SHOW_BUY_BUTTON } from "astro:env/server";
+import AmazonLogo from "../../components/AmazonLogo.astro";
+import BookScore from "../../components/BookScore.astro";
 
-export const getStaticPaths = (() => {
-    return [];
-}) satisfies GetStaticPaths;
+export async function getStaticPaths(){
+    const books = await getCollection("books");
+    
+    return books.map((book: { slug: any; }) => ({
+        params: {id: book.slug},
+        props: {book}
+    }));
+}
+
+const {book}  = Astro.props;
+const {data, slug} = book;
+const {title, author, img, readtime, description, buy} = data;
+
+const { Content } = await render(book);
+export const prerender = true;
 ---
 
-<Layout title="">
-    <h1>Hola</h1>
+<Layout title={title}>
+    <div class="flex gap-12">
+        <aside class="flex flex-col items-center gap-4">
+            <a href="/" class="hover:underline opacity-70">⬅️ Volver atrás</a>
+            <img transition:name={`img-${slug}`}  src={`/${img}`} alt={title} class="rounded w-72 h-auto">
+            <BookScore server:defer id = {slug}>
+                <span slot="fallback" class="text-xs opacity-70">Cargando puntacion...</span>
+            </BookScore>
+            {
+                SHOW_BUY_BUTTON && (
+                <a
+                href={buy.spain}
+                title="Comprar Libro"
+                target="_blank"
+                rel="noopener noreferrer"
+                class="text-balance inline-flex gap-2 items-center bg-yellow-400 hover:bg-yellow-500 active:bg-yellow-600 text-black font-bold py-2
+                px-4 rounded-lg border border-yellow-500 transition duration-200 ease-in-out hover:scale-105 justify-center text-center">
+                Buy on Spain
+                <AmazonLogo/>
+                </a>
+                )
+            }
+        </aside>
+        <main class="max-w-3xl">
+            <h1 class="font-bold mb-4 text-4xl">{title}</h1>
+            <div class="prose prose-invert">
+                <Content/>
+            </div>        
+        </main>
+        <h1>{title}</h1>
+    </div>
 </Layout>
